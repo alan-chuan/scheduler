@@ -122,7 +122,7 @@ static int (*syscalls[])(void) = {
 [SYS_sleep]   sys_sleep,
 [SYS_uptime]  sys_uptime,
 [SYS_open]    sys_open,
-[SYS_write]   sys_write,
+[SYS_write]   sys_write, 
 [SYS_mknod]   sys_mknod,
 [SYS_unlink]  sys_unlink,
 [SYS_link]    sys_link,
