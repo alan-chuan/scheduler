@@ -6,6 +6,7 @@
 #include "x86.h"
 #include "proc.h"
 #include "spinlock.h"
+#include "pstat.h"
 
 #define RAND_MAX 0x7fffffff
 uint rseed = 0;
@@ -96,7 +97,9 @@ allocproc(void)
 found:
   p->state = EMBRYO;
   p->pid = nextpid++;
-
+  p->tickets = 0;
+  p->runticks = 0;
+  p->boostsleft = 0; //todo: ask about killed
   release(&ptable.lock);
 
   // Allocate kernel stack.
@@ -113,7 +116,7 @@ found:
   // Set up new context to start executing at forkret,
   // which returns to trapret.
   sp -= 4;
-  *(uint*)sp = (uint)trapret;
+  *(uint*)sp = (uint)trapret; 
 
   sp -= sizeof *p->context;
   p->context = (struct context*)sp;
@@ -344,7 +347,7 @@ scheduler(void)
       if(p->state != RUNNABLE)
         continue;
 
-      // TODO lottery
+      // TODO hold_lottery()
 
 
       // Switch to chosen process.  It is the process's job
@@ -353,8 +356,9 @@ scheduler(void)
       c->proc = p;
       switchuvm(p);
       p->state = RUNNING;
+      p->runticks++;
 
-      swtch(&(c->scheduler), p->context);
+      swtch(&(c->scheduler), p->context); // context switch - giving control to process
       switchkvm();
 
       // Process is done running for now.
@@ -377,13 +381,33 @@ struct proc *hold_lottery(int total_tickets) {
     // uint winner_ticket_number = 0; // Ensure that it is less than total number of tickets.
 
     // pick the winning process from ptable.
+
+    // int counter = 0;
+    // int winner = rand(0, total_tickets);
+    // node_t *current = head;
+    // while (current) {
+    //   counter += current->tickets;
+    //   if (counter > winner) 
+    //     break;
+    //   current = current->next;
+    // }
+
+    // current is the winner
     // return winner.
     return 0;
 }
 
 // TODO implement
-int settickets(int pid, int n_tickets) {
-  return 0;
+int settickets(int pid, int n_tickets){
+  struct proc *p;
+  for (int i = 0; i < NPROC; i++){
+    p = &ptable.proc[i];
+    if (p->pid == pid && n_tickets > 0) {
+      p->tickets = n_tickets;
+      return 0;
+    }
+  }
+  return -1;
 }
 
 // TODO implement
@@ -391,8 +415,28 @@ void srand(uint seed) {
   rseed = seed;
 }
 
-// TODO implement
 int getpinfo(struct pstat *ps) {
+  // check if ps is valid
+  if (ps == 0) {
+    return -1;
+  }
+  // acquire lock
+  acquire(&ptable.lock);  //DOC: yieldlock
+
+  for(int i = 0; i < NPROC; i++)
+  {
+    ps->inuse[i] = 1;
+    if (ptable.proc[i].state == UNUSED){
+      ps->inuse[i] = 0;
+    }
+    ps->pid[i] = ptable.proc[i].pid;
+    ps->tickets[i] = ptable.proc[i].tickets;
+    ps->runticks[i] = ptable.proc[i].runticks;
+    ps->boostsleft[i] = ptable.proc[i].boostsleft;
+  }
+  // release lock
+  release(&ptable.lock);
+
   return 0;
 }
 
