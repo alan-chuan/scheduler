@@ -388,11 +388,11 @@ int settickets(int pid, int n_tickets) {
 
 // TODO implement
 void srand(uint seed) {
-
+  rseed = seed;
 }
 
 // TODO implement
-int getpidinfo(struct pstat *ps) {
+int getpinfo(struct pstat *ps) {
   return 0;
 }
 

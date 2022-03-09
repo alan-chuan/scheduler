@@ -22,4 +22,4 @@
 #define SYS_close  21
 #define SYS_settickets  22
 #define SYS_srand  23
-#define SYS_getpidinfo  24
+#define SYS_getpinfo  24

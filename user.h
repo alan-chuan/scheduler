@@ -26,7 +26,7 @@ int sleep(int);
 int uptime(void);
 int settickets(int pid, int n_tickets);
 void srand(uint seed);
-int getpidinfo(struct pstat *);
+int getpinfo(struct pstat *);
 
 // ulib.c
 int stat(const char*, struct stat*);

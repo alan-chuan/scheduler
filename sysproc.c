@@ -103,7 +103,7 @@ sys_srand(void)
 }
 
 int
-sys_getpidinfo(void)
+sys_getpinfo(void)
 {
   return 0;
 }
