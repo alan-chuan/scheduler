@@ -9,6 +9,13 @@ struct spinlock;
 struct sleeplock;
 struct stat;
 struct superblock;
+struct pstat;
+//   int inuse[3]; // whether this slot of the process table is in use (1 or 0)
+//   int pid[3]; // PID of each process
+//   int tickets[3];  // how many tickets does this process have?
+//   int runticks[3];  // total number of timer ticks this process has been scheduled
+//   int boostsleft[3]; // how many more ticks will this process be boosted?
+// };
 
 // bio.c
 void            binit(void);
@@ -120,6 +127,9 @@ void            userinit(void);
 int             wait(void);
 void            wakeup(void*);
 void            yield(void);
+int settickets(int pid, int n_tickets);
+void srand(uint seed);
+int getpinfo(struct pstat *);
 
 // swtch.S
 void            swtch(struct context**, struct context*);

@@ -7,6 +7,14 @@
 #include "proc.h"
 #include "spinlock.h"
 
+#define RAND_MAX 0x7fffffff
+uint rseed = 0;
+
+// https://rosettacode.org/wiki/Linear_congruential_generator
+uint rand() {
+    return rseed = (rseed * 1103515245 + 12345) & RAND_MAX;
+}
+
 struct {
   struct spinlock lock;
   struct proc proc[NPROC];
@@ -336,6 +344,9 @@ scheduler(void)
       if(p->state != RUNNABLE)
         continue;
 
+      // TODO lottery
+
+
       // Switch to chosen process.  It is the process's job
       // to release ptable.lock and then reacquire it
       // before jumping back to us.
@@ -353,6 +364,36 @@ scheduler(void)
     release(&ptable.lock);
 
   }
+}
+
+// returns a pointer to the lottery winner. TODO implement
+struct proc *hold_lottery(int total_tickets) {
+    if (total_tickets <= 0) {
+        cprintf("this function should only be called when at least 1 process is RUNNABLE");
+        return 0;
+    }
+
+    // uint random_number = rand();    // This number is between 0->4 billion
+    // uint winner_ticket_number = 0; // Ensure that it is less than total number of tickets.
+
+    // pick the winning process from ptable.
+    // return winner.
+    return 0;
+}
+
+// TODO implement
+int settickets(int pid, int n_tickets) {
+  return 0;
+}
+
+// TODO implement
+void srand(uint seed) {
+
+}
+
+// TODO implement
+int getpidinfo(struct pstat *ps) {
+  return 0;
 }
 
 // Enter scheduler.  Must hold only ptable.lock
