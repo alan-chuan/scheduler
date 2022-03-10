@@ -352,11 +352,23 @@ struct proc *hold_lottery(int total_tickets)
     struct proc *p = &ptable.proc[i];
     if (p->state == RUNNABLE)
     {
-      counter += p->tickets;
+      if (p->boostsleft > 0){
+        p->boostsleft--;
+        counter += 2*(p->tickets);
+      }
+      else
+      {
+        counter += p->tickets;
+      }
       if (counter >= winner_ticket_number)
       {
         return p;
       }
+    }
+    else if (p->state == SLEEPING)
+    {
+      //increment boosts left
+      p->boostsleft++;
     }
   }
 
@@ -386,19 +398,23 @@ void scheduler(void)
 
     // Get total tickets
     int total_tickets = 0;
-    int runnable = 0;
     for (p = ptable.proc; p < &ptable.proc[NPROC]; p++)
     {
       if (p->state == RUNNABLE)
       {
-        total_tickets += p->tickets;
-        runnable = 1;
+        if(p->boostsleft > 0)
+        {
+          total_tickets += 2*(p->tickets);
+        }
+        else 
+        {
+          total_tickets += p->tickets;
+        }
       }
     }
-    // release(&ptable.lock);
 
     // choose a process to run
-    if (runnable == 1)
+    if (total_tickets > 0)
     {
       p = hold_lottery(total_tickets);
     }
@@ -582,9 +598,12 @@ wakeup1(void *chan)
 {
   struct proc *p;
 
-  for (p = ptable.proc; p < &ptable.proc[NPROC]; p++)
-    if (p->state == SLEEPING && p->chan == chan)
+  for (p = ptable.proc; p < &ptable.proc[NPROC]; p++) {
+    if (p->state == SLEEPING && p->chan == chan) {
       p->state = RUNNABLE;
+      // p->boostsleft++;
+    }
+  }
 }
 
 // Wake up all processes sleeping on chan.
