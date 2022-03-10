@@ -53,6 +53,7 @@ struct proc {
   int tickets;
   int runticks;
   int boostsleft;
+  int sleepleft;
 };
 
 // Process memory is laid out contiguously, low addresses first:

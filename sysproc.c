@@ -58,6 +58,8 @@ int sys_sleep(void)
 
   if (argint(0, &n) < 0)
     return -1;
+  
+  myproc()->sleepleft = n;
   acquire(&tickslock);
   ticks0 = ticks;
   while (ticks - ticks0 < n)
@@ -96,6 +98,10 @@ int sys_settickets(void)
 
 int sys_srand(void)
 {
+  int seed;
+  if (argint(0, &seed) < 0)
+    return -1;
+  srand(seed);
   return 0;
 }
 

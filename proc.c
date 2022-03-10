@@ -352,9 +352,10 @@ struct proc *hold_lottery(int total_tickets)
     struct proc *p = &ptable.proc[i];
     if (p->state == RUNNABLE)
     {
-      if (p->boostsleft > 0){
+      if (p->boostsleft > 0)
+      {
         p->boostsleft--;
-        counter += 2*(p->tickets);
+        counter += 2 * (p->tickets);
       }
       else
       {
@@ -365,10 +366,10 @@ struct proc *hold_lottery(int total_tickets)
         return p;
       }
     }
-    else if (p->state == SLEEPING)
+    else if (p->state == SLEEPING && p->chan != &ticks)
     {
-      //increment boosts left
-      p->boostsleft++;
+      // increment boosts left
+       p->boostsleft++;
     }
   }
 
@@ -402,11 +403,11 @@ void scheduler(void)
     {
       if (p->state == RUNNABLE)
       {
-        if(p->boostsleft > 0)
+        if (p->boostsleft > 0)
         {
-          total_tickets += 2*(p->tickets);
+          total_tickets += 2 * (p->tickets);
         }
-        else 
+        else
         {
           total_tickets += p->tickets;
         }
@@ -461,7 +462,6 @@ int settickets(int pid, int n_tickets)
   return -1;
 }
 
-// TODO implement
 void srand(uint seed)
 {
   rseed = seed;
@@ -598,10 +598,18 @@ wakeup1(void *chan)
 {
   struct proc *p;
 
-  for (p = ptable.proc; p < &ptable.proc[NPROC]; p++) {
+  for (p = ptable.proc; p < &ptable.proc[NPROC]; p++)
+  {
     if (p->state == SLEEPING && p->chan == chan) {
-      p->state = RUNNABLE;
-      // p->boostsleft++;
+      if (p->sleepleft == 0) 
+      {
+        p->state = RUNNABLE;
+      }
+      else if (p->sleepleft > 0)
+      {
+        p->sleepleft--;
+        p->boostsleft++;
+      }
     }
   }
 }
