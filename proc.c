@@ -77,11 +77,11 @@ myproc(void)
   return p;
 }
 
-//PAGEBREAK: 32
-// Look in the process table for an UNUSED proc.
-// If found, change state to EMBRYO and initialize
-// state required to run in the kernel.
-// Otherwise return 0.
+// PAGEBREAK: 32
+//  Look in the process table for an UNUSED proc.
+//  If found, change state to EMBRYO and initialize
+//  state required to run in the kernel.
+//  Otherwise return 0.
 static struct proc *
 allocproc(void)
 {
@@ -130,8 +130,8 @@ found:
   return p;
 }
 
-//PAGEBREAK: 32
-// Set up first user process.
+// PAGEBREAK: 32
+//  Set up first user process.
 void userinit(void)
 {
   struct proc *p;
@@ -330,18 +330,47 @@ int wait(void)
     }
 
     // Wait for children to exit.  (See wakeup1 call in proc_exit.)
-    sleep(curproc, &ptable.lock); //DOC: wait-sleep
+    sleep(curproc, &ptable.lock); // DOC: wait-sleep
   }
 }
 
-//PAGEBREAK: 42
-// Per-CPU process scheduler.
-// Each CPU calls scheduler() after setting itself up.
-// Scheduler never returns.  It loops, doing:
-//  - choose a process to run
-//  - swtch to start running that process
-//  - eventually that process transfers control
-//      via swtch back to the scheduler.
+// returns a pointer to the lottery winner. TODO implement
+struct proc *hold_lottery(int total_tickets)
+{
+  if (total_tickets <= 0)
+  {
+    cprintf("this function should only be called when at least 1 process is RUNNABLE");
+    return 0;
+  }
+
+  uint random_number = rand();                               // This number is between 0->4 billion
+  uint winner_ticket_number = random_number % total_tickets; // Ensure that it is less than total number of tickets.
+  // pick the winning process from ptable.
+  int counter = 0;
+  for (int i = 0; i < NPROC; i++)
+  {
+    struct proc *p = &ptable.proc[i];
+    if (p->state == RUNNABLE)
+    {
+      counter += p->tickets;
+      if (counter >= winner_ticket_number)
+      {
+        return p;
+      }
+    }
+  }
+
+  return 0;
+}
+
+// PAGEBREAK: 42
+//  Per-CPU process scheduler.
+//  Each CPU calls scheduler() after setting itself up.
+//  Scheduler never returns.  It loops, doing:
+//   - choose a process to run
+//   - swtch to start running that process
+//   - eventually that process transfers control
+//       via swtch back to the scheduler.
 void scheduler(void)
 {
   struct proc *p;
@@ -353,64 +382,49 @@ void scheduler(void)
     // Enable interrupts on this processor.
     sti();
 
-    // Loop over process table looking for process to run.
     acquire(&ptable.lock);
+
+    // Get total tickets
+    int total_tickets = 0;
+    int runnable = 0;
     for (p = ptable.proc; p < &ptable.proc[NPROC]; p++)
     {
-      if (p->state != RUNNABLE)
-        continue;
-
-      // TODO hold_lottery()
-
-      // Switch to chosen process.  It is the process's job
-      // to release ptable.lock and then reacquire it
-      // before jumping back to us.
-      c->proc = p;
-      switchuvm(p);
-      p->state = RUNNING;
-      p->runticks++;
-
-      swtch(&(c->scheduler), p->context); // context switch - giving control to process
-      switchkvm();
-
-      // Process is done running for now.
-      // It should have changed its p->state before coming back.
-      c->proc = 0;
+      if (p->state == RUNNABLE)
+      {
+        total_tickets += p->tickets;
+        runnable = 1;
+      }
     }
+    // release(&ptable.lock);
+
+    // choose a process to run
+    if (runnable == 1)
+    {
+      p = hold_lottery(total_tickets);
+    }
+    else
+    {
+      release(&ptable.lock);
+      continue;
+    }
+
+    // Switch to chosen process.  It is the process's job
+    // to release ptable.lock and then reacquire it
+    // before jumping back to us.
+    c->proc = p;
+    switchuvm(p);
+    p->state = RUNNING;
+    p->runticks++;
+
+    swtch(&(c->scheduler), p->context); // context switch - giving control to process
+    switchkvm();
+
+    // Process is done running for now.
+    // It should have changed its p->state before coming back.
+    c->proc = 0;
     release(&ptable.lock);
   }
 }
-
-// returns a pointer to the lottery winner. TODO implement
-// struct proc *hold_lottery(int total_tickets)
-// {
-  // if (total_tickets <= 0)
-  // {
-  //   cprintf("this function should only be called when at least 1 process is RUNNABLE");
-  //   return 0;
-  // }
-
-  // uint random_number = rand();    // This number is between 0->4 billion
-  // uint winner_ticket_number = random_number % total_tickets; // Ensure that it is less than total number of tickets.
-  // pick the winning process from ptable.
-  // int counter = 0;
-  // int winner = rand(0, total_tickets);
-  // node_t *current = head;
-  // for (int i = 0; i < NPROC; i++)
-  // {
-    
-  // }
-  // while (current) {
-  //   counter += current->tickets;
-  //   if (counter > winner)
-  //     break;
-  //   current = current->next;
-  // }
-
-  // current is the winner
-  // return winner.
-  // return 0;
-// }
 
 int settickets(int pid, int n_tickets)
 {
@@ -493,7 +507,7 @@ void sched(void)
 // Give up the CPU for one scheduling round.
 void yield(void)
 {
-  acquire(&ptable.lock); //DOC: yieldlock
+  acquire(&ptable.lock); // DOC: yieldlock
   myproc()->state = RUNNABLE;
   sched();
   release(&ptable.lock);
@@ -539,8 +553,8 @@ void sleep(void *chan, struct spinlock *lk)
   // (wakeup runs with ptable.lock locked),
   // so it's okay to release lk.
   if (lk != &ptable.lock)
-  {                        //DOC: sleeplock0
-    acquire(&ptable.lock); //DOC: sleeplock1
+  {                        // DOC: sleeplock0
+    acquire(&ptable.lock); // DOC: sleeplock1
     release(lk);
   }
   // Go to sleep.
@@ -554,15 +568,15 @@ void sleep(void *chan, struct spinlock *lk)
 
   // Reacquire original lock.
   if (lk != &ptable.lock)
-  { //DOC: sleeplock2
+  { // DOC: sleeplock2
     release(&ptable.lock);
     acquire(lk);
   }
 }
 
-//PAGEBREAK!
-// Wake up all processes sleeping on chan.
-// The ptable lock must be held.
+// PAGEBREAK!
+//  Wake up all processes sleeping on chan.
+//  The ptable lock must be held.
 static void
 wakeup1(void *chan)
 {
@@ -605,10 +619,10 @@ int kill(int pid)
   return -1;
 }
 
-//PAGEBREAK: 36
-// Print a process listing to console.  For debugging.
-// Runs when user types ^P on console.
-// No lock to avoid wedging a stuck machine further.
+// PAGEBREAK: 36
+//  Print a process listing to console.  For debugging.
+//  Runs when user types ^P on console.
+//  No lock to avoid wedging a stuck machine further.
 void procdump(void)
 {
   static char *states[] = {
